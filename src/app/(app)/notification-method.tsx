@@ -27,7 +27,7 @@ export default function NotificationMethodScreen() {
   return (
     <Screen>
       <AppText variant="caption" style={styles.lead}>
-        A preferência fica salva neste aparelho. A mensagem de teste abre o WhatsApp ou o SMS para você confirmar o envio.
+        O alerta e a mensagem de teste usam este método para avisar o contato salvo.
       </AppText>
 
       <Card>

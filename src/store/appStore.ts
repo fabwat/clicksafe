@@ -51,7 +51,8 @@ interface AppStore extends AppState {
     >,
   ) => void;
   upsertPrimaryContact: (input: Omit<EmergencyContact, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'enabled'>) => void;
-  sendTestMessage: () => TestMessageResult;
+  recordTestMessage: () => TestMessageResult;
+  recordEmergencyAlert: (input: { deadline: string; status: 'sent' | 'failed'; errorMessage: string | null }) => void;
 }
 
 const initialWorkspace = createLocalWorkspace();
@@ -176,9 +177,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
         };
 
     set({ contacts: [contact, ...contacts.filter((item) => item.id !== contact.id)] });
+    const { maybeDeliverEmergencyAlert } = require('@/features/alerts/deliverContactMessage') as typeof import('@/features/alerts/deliverContactMessage');
+    void maybeDeliverEmergencyAlert();
   },
 
-  sendTestMessage: () => {
+  recordTestMessage: () => {
     const { session, profile, contacts, history } = get();
     const contact = contacts[0];
     if (!contact) {
@@ -187,14 +190,13 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
     const now = new Date();
     const preview = buildTestMessage(profile.emergencyMessage, profile.name);
-    const channel = contact.notificationMethod === 'whatsapp' ? 'WhatsApp' : 'SMS';
     const historyEvent: HistoryEvent = {
       id: createId('history'),
       userId: session.userId,
       type: 'test_message',
       occurredAt: now.toISOString(),
       title: `Mensagem de teste para ${contact.name}`,
-      description: `${channel} aberto para ${formatPhoneDisplay(contact.countryCode, contact.phone)}. Confirme o envio no aplicativo.`,
+      description: deliveryDescription(contact),
     };
 
     set({ history: [historyEvent, ...history] });
@@ -205,13 +207,58 @@ export const useAppStore = create<AppStore>((set, get) => ({
       preview,
     };
   },
+
+  recordEmergencyAlert: ({ deadline, status, errorMessage }) => {
+    const { session, contacts, alerts, history } = get();
+    const contact = contacts[0] ?? null;
+    const existing = alerts.find((alert) => alert.checkinDeadline === deadline);
+    if (existing?.status === 'sent') {
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const alert: Alert = {
+      id: existing?.id ?? createId('alert'),
+      userId: session.userId,
+      checkinDeadline: deadline,
+      emergencyContactId: contact?.id ?? existing?.emergencyContactId ?? 'missing',
+      notificationMethod: contact?.notificationMethod ?? existing?.notificationMethod ?? 'whatsapp',
+      status,
+      providerMessageId: null,
+      errorMessage,
+      retryCount: existing ? existing.retryCount + 1 : 0,
+      sentAt: status === 'sent' ? now : null,
+      createdAt: existing?.createdAt ?? now,
+    };
+    const historyEvent: HistoryEvent = {
+      id: createId('history'),
+      userId: session.userId,
+      type: status === 'sent' ? 'alert_sent' : 'alert_failed',
+      occurredAt: now,
+      title: status === 'sent' && contact ? `Alerta para ${contact.name}` : 'Alerta não enviado',
+      description:
+        status === 'sent' && contact
+          ? deliveryDescription(contact)
+          : (errorMessage ?? 'Não foi possível avisar o contato.'),
+    };
+
+    set({
+      alerts: existing
+        ? alerts.map((item) => (item.id === existing.id ? alert : item))
+        : [alert, ...alerts],
+      history: [historyEvent, ...history],
+    });
+  },
 }));
+
+function deliveryDescription(contact: EmergencyContact): string {
+  const channel = contact.notificationMethod === 'whatsapp' ? 'WhatsApp' : 'SMS';
+  return `${channel} aberto para ${formatPhoneDisplay(contact.countryCode, contact.phone)}. Confirme o envio no aplicativo.`;
+}
 
 export function selectSafetyStatus(state: AppStore, now = new Date()): SafetyStatus {
   const alertSent = state.alerts.some(
-    (alert) =>
-      alert.checkinDeadline === state.settings.nextDeadlineAt &&
-      (alert.status === 'sent' || alert.status === 'pending'),
+    (alert) => alert.checkinDeadline === state.settings.nextDeadlineAt && alert.status === 'sent',
   );
 
   return getSafetyStatus({

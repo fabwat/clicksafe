@@ -100,11 +100,7 @@ export function getSafetyStatus(params: {
   const now = params.nowUtc.getTime();
   const deadline = params.deadlineUtc.getTime();
   const reminderAt = deadline - params.reminderMinutes * 60_000;
-  const alertAt = deadline + params.gracePeriodMinutes * 60_000;
 
-  if (now >= alertAt) {
-    return 'ALERT_SENT';
-  }
   if (now >= deadline) {
     return 'OVERDUE';
   }
@@ -112,6 +108,11 @@ export function getSafetyStatus(params: {
     return 'DUE_SOON';
   }
   return 'SAFE';
+}
+
+export function isAlertDue(params: { nowUtc: Date; deadlineUtc: Date; gracePeriodMinutes: number }): boolean {
+  const alertAt = params.deadlineUtc.getTime() + params.gracePeriodMinutes * 60_000;
+  return params.nowUtc.getTime() >= alertAt;
 }
 
 export function isSameDeadlinePeriod(leftIso: string, rightIso: string): boolean {
