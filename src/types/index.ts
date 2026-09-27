@@ -15,4 +15,5 @@ export type {
   CheckinResult,
   TestMessageResult,
   WhatsAppCloudConfig,
+  SmsGatewayConfig,
 } from './domain';

@@ -13,8 +13,10 @@ import type {
   SafetyStatus,
   Session,
   TestMessageResult,
+  SmsGatewayConfig,
   WhatsAppCloudConfig,
 } from '@/types';
+import { readSmsGatewayConfig } from '@/features/alerts/smsGateway';
 import { readWhatsAppCloudConfig } from '@/features/alerts/whatsappCloud';
 import { formatNextCheckinLabel } from '@/utils/dates';
 import { computeDeadlineFromSettings, getSafetyStatus } from '@/utils/deadlines';
@@ -33,6 +35,7 @@ interface AppState {
   history: HistoryEvent[];
   lastCheckinRequestAt: number | null;
   whatsappCloud: WhatsAppCloudConfig;
+  smsGateway: SmsGatewayConfig;
 }
 
 interface AppStore extends AppState {
@@ -55,6 +58,7 @@ interface AppStore extends AppState {
   ) => void;
   upsertPrimaryContact: (input: Omit<EmergencyContact, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'enabled'>) => void;
   updateWhatsAppCloud: (config: WhatsAppCloudConfig) => void;
+  updateSmsGateway: (config: SmsGatewayConfig) => void;
   recordTestMessage: (providerMessageId: string) => TestMessageResult;
   recordEmergencyAlert: (input: {
     deadline: string;
@@ -71,6 +75,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   ...initialWorkspace,
   lastCheckinRequestAt: null,
   whatsappCloud: readWhatsAppCloudConfig(),
+  smsGateway: readSmsGatewayConfig(),
 
   completeOnboarding: () => set({ hasCompletedOnboarding: true }),
 
@@ -79,6 +84,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       ...createLocalWorkspace(),
       lastCheckinRequestAt: null,
       whatsappCloud: readWhatsAppCloudConfig(),
+      smsGateway: readSmsGatewayConfig(),
     });
   },
 
@@ -198,6 +204,16 @@ export const useAppStore = create<AppStore>((set, get) => ({
         accessToken: config.accessToken.trim(),
         phoneNumberId: config.phoneNumberId.trim(),
         templateName: config.templateName.trim(),
+      },
+    });
+  },
+
+  updateSmsGateway: (config) => {
+    set({
+      smsGateway: {
+        accountSid: config.accountSid.trim(),
+        authToken: config.authToken.trim(),
+        fromNumber: config.fromNumber.trim(),
       },
     });
   },

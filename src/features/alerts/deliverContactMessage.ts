@@ -1,3 +1,4 @@
+import { sendSmsMessage } from '@/features/alerts/smsGateway';
 import { sendWhatsAppCloudMessage } from '@/features/alerts/whatsappCloud';
 import { useAppStore } from '@/store/appStore';
 import type { NotificationMethod } from '@/types';
@@ -31,15 +32,19 @@ export async function deliverToSavedContact(purpose: DeliveryPurpose): Promise<D
       ? buildTestMessage(state.profile.emergencyMessage, state.profile.name)
       : renderEmergencyMessage(state.profile.emergencyMessage, state.profile.name);
 
-  if (contact.notificationMethod !== 'whatsapp') {
-    throw new Error('O envio automático está disponível só por WhatsApp.');
-  }
-
-  const providerMessageId = await sendWhatsAppCloudMessage({
-    config: state.whatsappCloud,
-    to: toE164(contact.countryCode, contact.phone),
-    body: preview,
-  });
+  const destination = toE164(contact.countryCode, contact.phone);
+  const providerMessageId =
+    contact.notificationMethod === 'whatsapp'
+      ? await sendWhatsAppCloudMessage({
+          config: state.whatsappCloud,
+          to: destination,
+          body: preview,
+        })
+      : await sendSmsMessage({
+          config: state.smsGateway,
+          to: destination,
+          body: preview,
+        });
 
   if (purpose === 'test') {
     useAppStore.getState().recordTestMessage(providerMessageId);
