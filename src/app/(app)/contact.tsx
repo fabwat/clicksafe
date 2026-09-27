@@ -6,16 +6,14 @@ import { AppText } from '@/components/ui/AppText';
 import { FormField } from '@/components/ui/FormField';
 import { Screen } from '@/components/ui/Screen';
 import { palette } from '@/constants/colors';
+import { deliverToSavedContact } from '@/features/alerts/deliverContactMessage';
 import { useAppStore } from '@/store/appStore';
 import type { NotificationMethod } from '@/types';
-import { buildTestMessage } from '@/utils/message';
-import { openOutboundMessage } from '@/utils/outbound';
 import { isValidPhone } from '@/utils/phone';
 
 export default function ContactScreen() {
   const existing = useAppStore((state) => state.contacts[0] ?? null);
   const upsertPrimaryContact = useAppStore((state) => state.upsertPrimaryContact);
-  const sendTestMessage = useAppStore((state) => state.sendTestMessage);
   const [name, setName] = useState(existing?.name ?? '');
   const [relationship, setRelationship] = useState(existing?.relationship ?? '');
   const [countryCode, setCountryCode] = useState(existing?.countryCode ?? '+55');
@@ -57,26 +55,12 @@ export default function ContactScreen() {
       return;
     }
 
-    const contact = useAppStore.getState().contacts[0];
-    if (!contact) {
-      Alert.alert('Não foi possível testar', 'Cadastre um contato de emergência primeiro.');
-      return;
-    }
-
-    const { profile } = useAppStore.getState();
-
     try {
-      await openOutboundMessage({
-        method: contact.notificationMethod,
-        countryCode: contact.countryCode,
-        phone: contact.phone,
-        text: buildTestMessage(profile.emergencyMessage, profile.name),
-      });
-      const result = sendTestMessage();
+      const result = await deliverToSavedContact('test');
       const channel = result.method === 'whatsapp' ? 'O WhatsApp' : 'O SMS';
       Alert.alert(
         'Mensagem de teste',
-        `${channel} foi aberto com a mensagem pronta. Toque em enviar para concluir.\n\n${result.preview}`,
+        `${channel} foi aberto para ${result.contactName}, no mesmo envio do alerta.\n\n${result.preview}`,
       );
     } catch (err) {
       Alert.alert('Não foi possível testar', err instanceof Error ? err.message : 'Erro inesperado.');
@@ -133,7 +117,7 @@ export default function ContactScreen() {
         <AppButton label="Salvar contato" onPress={handleSave} />
         <AppButton label="Enviar mensagem de teste" variant="secondary" onPress={handleTest} />
         <AppText variant="caption">
-          A mensagem abre no WhatsApp ou no SMS, conforme o método escolhido. Confirme o envio no aplicativo.
+          A mensagem de teste segue o mesmo envio do alerta para o contato salvo.
         </AppText>
       </View>
     </Screen>

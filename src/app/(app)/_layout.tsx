@@ -1,8 +1,11 @@
 import { Stack } from 'expo-router';
 
 import { palette } from '@/constants/colors';
+import { useEmergencyAlert } from '@/hooks/useEmergencyAlert';
 
 export default function AppGroupLayout() {
+  useEmergencyAlert();
+
   return (
     <Stack
       screenOptions={{
