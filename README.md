@@ -1,6 +1,8 @@
 # ClickSafe
 
-Check-in de segurança para iOS e Android. Tudo roda no próprio app, em memória. Sem backend ou login. Quando o prazo e a tolerância passam com o app aberto, o alerta abre o WhatsApp ou o SMS do contato salvo. A mensagem de teste usa o mesmo envio.
+Check-in de segurança para iOS e Android. Tudo roda no próprio app, em memória. Sem login. Quando o prazo e a tolerância passam com o app aberto, o alerta é enviado sozinho pela API do WhatsApp para o contato salvo. A mensagem de teste usa o mesmo envio. O app não abre o WhatsApp.
+
+Em **Método de notificação**, informe o token e o ID do número da WhatsApp Cloud API. Se a conversa ainda não foi iniciada pelo contato, use um template aprovado no campo de modelo. Também é possível definir `EXPO_PUBLIC_WHATSAPP_TOKEN`, `EXPO_PUBLIC_WHATSAPP_PHONE_NUMBER_ID` e `EXPO_PUBLIC_WHATSAPP_TEMPLATE`.
 
 ## Rodar
 

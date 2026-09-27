@@ -20,6 +20,7 @@ export default function ContactScreen() {
   const [phone, setPhone] = useState(existing?.phone ?? '');
   const [method, setMethod] = useState<NotificationMethod>(existing?.notificationMethod ?? 'whatsapp');
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
   function persistContact(): boolean {
@@ -55,15 +56,19 @@ export default function ContactScreen() {
       return;
     }
 
+    setNotice(null);
+
     try {
       const result = await deliverToSavedContact('test');
-      const channel = result.method === 'whatsapp' ? 'O WhatsApp' : 'O SMS';
-      Alert.alert(
-        'Mensagem de teste',
-        `${channel} foi aberto para ${result.contactName}, no mesmo envio do alerta.\n\n${result.preview}`,
-      );
+      const message = `Mensagem enviada para ${result.contactName} no WhatsApp, sem abrir o aplicativo.`;
+      setError(null);
+      setNotice(message);
+      Alert.alert('Mensagem de teste', `${message}\n\n${result.preview}`);
     } catch (err) {
-      Alert.alert('Não foi possível testar', err instanceof Error ? err.message : 'Erro inesperado.');
+      const message = err instanceof Error ? err.message : 'Erro inesperado.';
+      setNotice(null);
+      setError(message);
+      Alert.alert('Não foi possível testar', message);
     }
   }
 
@@ -113,11 +118,16 @@ export default function ContactScreen() {
             Contato salvo neste aparelho.
           </AppText>
         ) : null}
+        {notice ? (
+          <AppText variant="caption" color={palette.leaf}>
+            {notice}
+          </AppText>
+        ) : null}
 
         <AppButton label="Salvar contato" onPress={handleSave} />
         <AppButton label="Enviar mensagem de teste" variant="secondary" onPress={handleTest} />
         <AppText variant="caption">
-          A mensagem de teste segue o mesmo envio do alerta para o contato salvo.
+          A mensagem de teste sai pelo mesmo envio automático do alerta.
         </AppText>
       </View>
     </Screen>

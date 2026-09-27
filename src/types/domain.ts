@@ -109,8 +109,15 @@ export interface CheckinResult {
   nextCheckinLabel: string;
 }
 
+export interface WhatsAppCloudConfig {
+  accessToken: string;
+  phoneNumberId: string;
+  templateName: string;
+}
+
 export interface TestMessageResult {
   sent: boolean;
   method: NotificationMethod;
   preview: string;
+  providerMessageId: string | null;
 }

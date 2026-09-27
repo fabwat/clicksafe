@@ -14,4 +14,5 @@ export type {
   Device,
   CheckinResult,
   TestMessageResult,
+  WhatsAppCloudConfig,
 } from './domain';

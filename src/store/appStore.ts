@@ -13,7 +13,9 @@ import type {
   SafetyStatus,
   Session,
   TestMessageResult,
+  WhatsAppCloudConfig,
 } from '@/types';
+import { readWhatsAppCloudConfig } from '@/features/alerts/whatsappCloud';
 import { formatNextCheckinLabel } from '@/utils/dates';
 import { computeDeadlineFromSettings, getSafetyStatus } from '@/utils/deadlines';
 import { createId } from '@/utils/id';
@@ -30,6 +32,7 @@ interface AppState {
   alerts: Alert[];
   history: HistoryEvent[];
   lastCheckinRequestAt: number | null;
+  whatsappCloud: WhatsAppCloudConfig;
 }
 
 interface AppStore extends AppState {
@@ -51,8 +54,14 @@ interface AppStore extends AppState {
     >,
   ) => void;
   upsertPrimaryContact: (input: Omit<EmergencyContact, 'id' | 'userId' | 'createdAt' | 'updatedAt' | 'enabled'>) => void;
-  recordTestMessage: () => TestMessageResult;
-  recordEmergencyAlert: (input: { deadline: string; status: 'sent' | 'failed'; errorMessage: string | null }) => void;
+  updateWhatsAppCloud: (config: WhatsAppCloudConfig) => void;
+  recordTestMessage: (providerMessageId: string) => TestMessageResult;
+  recordEmergencyAlert: (input: {
+    deadline: string;
+    status: 'sent' | 'failed';
+    errorMessage: string | null;
+    providerMessageId?: string | null;
+  }) => void;
 }
 
 const initialWorkspace = createLocalWorkspace();
@@ -61,6 +70,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
   hasCompletedOnboarding: false,
   ...initialWorkspace,
   lastCheckinRequestAt: null,
+  whatsappCloud: readWhatsAppCloudConfig(),
 
   completeOnboarding: () => set({ hasCompletedOnboarding: true }),
 
@@ -68,6 +78,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
     set({
       ...createLocalWorkspace(),
       lastCheckinRequestAt: null,
+      whatsappCloud: readWhatsAppCloudConfig(),
     });
   },
 
@@ -181,7 +192,17 @@ export const useAppStore = create<AppStore>((set, get) => ({
     void maybeDeliverEmergencyAlert();
   },
 
-  recordTestMessage: () => {
+  updateWhatsAppCloud: (config) => {
+    set({
+      whatsappCloud: {
+        accessToken: config.accessToken.trim(),
+        phoneNumberId: config.phoneNumberId.trim(),
+        templateName: config.templateName.trim(),
+      },
+    });
+  },
+
+  recordTestMessage: (providerMessageId) => {
     const { session, profile, contacts, history } = get();
     const contact = contacts[0];
     if (!contact) {
@@ -205,10 +226,11 @@ export const useAppStore = create<AppStore>((set, get) => ({
       sent: true,
       method: contact.notificationMethod,
       preview,
+      providerMessageId,
     };
   },
 
-  recordEmergencyAlert: ({ deadline, status, errorMessage }) => {
+  recordEmergencyAlert: ({ deadline, status, errorMessage, providerMessageId = null }) => {
     const { session, contacts, alerts, history } = get();
     const contact = contacts[0] ?? null;
     const existing = alerts.find((alert) => alert.checkinDeadline === deadline);
@@ -224,7 +246,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       emergencyContactId: contact?.id ?? existing?.emergencyContactId ?? 'missing',
       notificationMethod: contact?.notificationMethod ?? existing?.notificationMethod ?? 'whatsapp',
       status,
-      providerMessageId: null,
+      providerMessageId,
       errorMessage,
       retryCount: existing ? existing.retryCount + 1 : 0,
       sentAt: status === 'sent' ? now : null,
@@ -253,7 +275,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
 
 function deliveryDescription(contact: EmergencyContact): string {
   const channel = contact.notificationMethod === 'whatsapp' ? 'WhatsApp' : 'SMS';
-  return `${channel} aberto para ${formatPhoneDisplay(contact.countryCode, contact.phone)}. Confirme o envio no aplicativo.`;
+  return `${channel} enviado para ${formatPhoneDisplay(contact.countryCode, contact.phone)}.`;
 }
 
 export function selectSafetyStatus(state: AppStore, now = new Date()): SafetyStatus {
