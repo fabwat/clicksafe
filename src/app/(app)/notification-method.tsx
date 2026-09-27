@@ -27,7 +27,7 @@ export default function NotificationMethodScreen() {
   return (
     <Screen>
       <AppText variant="caption" style={styles.lead}>
-        A preferência fica salva neste aparelho. O app não envia WhatsApp nem SMS.
+        A preferência fica salva neste aparelho. A mensagem de teste abre o WhatsApp ou o SMS para você confirmar o envio.
       </AppText>
 
       <Card>
