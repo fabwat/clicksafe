@@ -30,15 +30,17 @@ export function useEmergencyAlert() {
 
     run();
     const interval = setInterval(run, CHECK_INTERVAL_MS);
-    const subscription = AppState.addEventListener('change', (nextState) => {
+    const appStateSubscription = AppState.addEventListener('change', (nextState) => {
       if (nextState === 'active') {
         run();
       }
     });
+    const storeSubscription = useAppStore.subscribe(run);
 
     return () => {
       clearInterval(interval);
-      subscription.remove();
+      appStateSubscription.remove();
+      storeSubscription();
     };
   }, [hasCompletedOnboarding, nextDeadlineAt, gracePeriodMinutes, enabled, contactKey, alertKey]);
 }

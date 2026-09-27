@@ -177,6 +177,8 @@ export const useAppStore = create<AppStore>((set, get) => ({
         };
 
     set({ contacts: [contact, ...contacts.filter((item) => item.id !== contact.id)] });
+    const { maybeDeliverEmergencyAlert } = require('@/features/alerts/deliverContactMessage') as typeof import('@/features/alerts/deliverContactMessage');
+    void maybeDeliverEmergencyAlert();
   },
 
   recordTestMessage: () => {
