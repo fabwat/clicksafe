@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-import { CHECKIN_DEBOUNCE_MS, TEST_MESSAGE } from '@/constants/config';
+import { CHECKIN_DEBOUNCE_MS } from '@/constants/config';
 import { createLocalWorkspace } from '@/store/seedData';
 import type {
   Alert,
@@ -17,7 +17,7 @@ import type {
 import { formatNextCheckinLabel } from '@/utils/dates';
 import { computeDeadlineFromSettings, getSafetyStatus } from '@/utils/deadlines';
 import { createId } from '@/utils/id';
-import { renderEmergencyMessage } from '@/utils/message';
+import { buildTestMessage } from '@/utils/message';
 import { formatPhoneDisplay } from '@/utils/phone';
 
 interface AppState {
@@ -186,14 +186,15 @@ export const useAppStore = create<AppStore>((set, get) => ({
     }
 
     const now = new Date();
-    const preview = `${TEST_MESSAGE}\n\n${renderEmergencyMessage(profile.emergencyMessage, profile.name)}`;
+    const preview = buildTestMessage(profile.emergencyMessage, profile.name);
+    const channel = contact.notificationMethod === 'whatsapp' ? 'WhatsApp' : 'SMS';
     const historyEvent: HistoryEvent = {
       id: createId('history'),
       userId: session.userId,
       type: 'test_message',
       occurredAt: now.toISOString(),
       title: `Mensagem de teste para ${contact.name}`,
-      description: `Registrada no app para ${formatPhoneDisplay(contact.countryCode, contact.phone)}. Nada foi enviado.`,
+      description: `${channel} aberto para ${formatPhoneDisplay(contact.countryCode, contact.phone)}. Confirme o envio no aplicativo.`,
     };
 
     set({ history: [historyEvent, ...history] });

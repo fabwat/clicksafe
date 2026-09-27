@@ -1,6 +1,6 @@
 # ClickSafe
 
-Check-in de segurança para iOS e Android. Tudo roda no próprio app, em memória. Sem backend, login ou envio real de SMS/WhatsApp.
+Check-in de segurança para iOS e Android. Tudo roda no próprio app, em memória. Sem backend ou login. A mensagem de teste abre o WhatsApp ou o SMS do aparelho para você confirmar o envio.
 
 ## Rodar
 

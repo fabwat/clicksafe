@@ -8,6 +8,8 @@ import { Screen } from '@/components/ui/Screen';
 import { palette } from '@/constants/colors';
 import { useAppStore } from '@/store/appStore';
 import type { NotificationMethod } from '@/types';
+import { buildTestMessage } from '@/utils/message';
+import { openOutboundMessage } from '@/utils/outbound';
 import { isValidPhone } from '@/utils/phone';
 
 export default function ContactScreen() {
@@ -22,14 +24,16 @@ export default function ContactScreen() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  function handleSave() {
+  function persistContact(): boolean {
     if (name.trim().length < 2) {
       setError('Informe o nome do contato.');
-      return;
+      setSaved(false);
+      return false;
     }
     if (!isValidPhone(countryCode, phone)) {
       setError('Telefone inválido. Use código do país e número com DDD.');
-      return;
+      setSaved(false);
+      return false;
     }
 
     upsertPrimaryContact({
@@ -41,15 +45,38 @@ export default function ContactScreen() {
     });
     setError(null);
     setSaved(true);
+    return true;
   }
 
-  function handleTest() {
+  function handleSave() {
+    persistContact();
+  }
+
+  async function handleTest() {
+    if (!persistContact()) {
+      return;
+    }
+
+    const contact = useAppStore.getState().contacts[0];
+    if (!contact) {
+      Alert.alert('Não foi possível testar', 'Cadastre um contato de emergência primeiro.');
+      return;
+    }
+
+    const { profile } = useAppStore.getState();
+
     try {
-      handleSave();
+      await openOutboundMessage({
+        method: contact.notificationMethod,
+        countryCode: contact.countryCode,
+        phone: contact.phone,
+        text: buildTestMessage(profile.emergencyMessage, profile.name),
+      });
       const result = sendTestMessage();
+      const channel = result.method === 'whatsapp' ? 'O WhatsApp' : 'O SMS';
       Alert.alert(
         'Mensagem de teste',
-        `${result.preview}\n\nRegistrada só no histórico do app. Nada foi enviado.`,
+        `${channel} foi aberto com a mensagem pronta. Toque em enviar para concluir.\n\n${result.preview}`,
       );
     } catch (err) {
       Alert.alert('Não foi possível testar', err instanceof Error ? err.message : 'Erro inesperado.');
@@ -105,6 +132,9 @@ export default function ContactScreen() {
 
         <AppButton label="Salvar contato" onPress={handleSave} />
         <AppButton label="Enviar mensagem de teste" variant="secondary" onPress={handleTest} />
+        <AppText variant="caption">
+          A mensagem abre no WhatsApp ou no SMS, conforme o método escolhido. Confirme o envio no aplicativo.
+        </AppText>
       </View>
     </Screen>
   );
