@@ -1,5 +1,4 @@
 import { useEffect } from 'react';
-import { AppState } from 'react-native';
 
 import { maybeDeliverEmergencyAlert } from '@/features/alerts/deliverContactMessage';
 import { useAppStore } from '@/store/appStore';
@@ -27,6 +26,8 @@ export function useEmergencyAlert() {
     const run = () => {
       void maybeDeliverEmergencyAlert();
     };
+
+    const { AppState } = require('react-native') as typeof import('react-native');
 
     run();
     const interval = setInterval(run, CHECK_INTERVAL_MS);
