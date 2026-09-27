@@ -1,8 +1,9 @@
+import { sendWhatsAppCloudMessage } from '@/features/alerts/whatsappCloud';
 import { useAppStore } from '@/store/appStore';
 import type { NotificationMethod } from '@/types';
 import { isAlertDue } from '@/utils/deadlines';
 import { buildTestMessage, renderEmergencyMessage } from '@/utils/message';
-import { openOutboundMessage } from '@/utils/outbound';
+import { toE164 } from '@/utils/phone';
 
 export const MISSING_CONTACT_ERROR = 'Cadastre um contato de emergência para enviar o alerta.';
 
@@ -30,17 +31,25 @@ export async function deliverToSavedContact(purpose: DeliveryPurpose): Promise<D
       ? buildTestMessage(state.profile.emergencyMessage, state.profile.name)
       : renderEmergencyMessage(state.profile.emergencyMessage, state.profile.name);
 
-  await openOutboundMessage({
-    method: contact.notificationMethod,
-    countryCode: contact.countryCode,
-    phone: contact.phone,
-    text: preview,
+  if (contact.notificationMethod !== 'whatsapp') {
+    throw new Error('O envio automático está disponível só por WhatsApp.');
+  }
+
+  const providerMessageId = await sendWhatsAppCloudMessage({
+    config: state.whatsappCloud,
+    to: toE164(contact.countryCode, contact.phone),
+    body: preview,
   });
 
   if (purpose === 'test') {
-    useAppStore.getState().recordTestMessage();
+    useAppStore.getState().recordTestMessage(providerMessageId);
   } else {
-    useAppStore.getState().recordEmergencyAlert({ deadline, status: 'sent', errorMessage: null });
+    useAppStore.getState().recordEmergencyAlert({
+      deadline,
+      status: 'sent',
+      errorMessage: null,
+      providerMessageId,
+    });
   }
 
   return {
@@ -97,7 +106,7 @@ export async function maybeDeliverEmergencyAlert(now = new Date()): Promise<void
   try {
     await deliverToSavedContact('alert');
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Não foi possível abrir o aplicativo.';
+    const message = error instanceof Error ? error.message : 'Não foi possível enviar a mensagem.';
     const current = useAppStore.getState().alerts.find((alert) => alert.checkinDeadline === deadline);
     if (current?.status !== 'sent') {
       useAppStore.getState().recordEmergencyAlert({

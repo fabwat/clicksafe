@@ -1,15 +1,24 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AppButton } from '@/components/ui/AppButton';
 import { AppText } from '@/components/ui/AppText';
 import { Card } from '@/components/ui/Card';
+import { FormField } from '@/components/ui/FormField';
 import { Screen } from '@/components/ui/Screen';
+import { palette } from '@/constants/colors';
 import { useAppStore } from '@/store/appStore';
 import type { NotificationMethod } from '@/types';
 
 export default function NotificationMethodScreen() {
   const contact = useAppStore((state) => state.contacts[0] ?? null);
   const upsertPrimaryContact = useAppStore((state) => state.upsertPrimaryContact);
+  const whatsappCloud = useAppStore((state) => state.whatsappCloud);
+  const updateWhatsAppCloud = useAppStore((state) => state.updateWhatsAppCloud);
+  const [accessToken, setAccessToken] = useState(whatsappCloud.accessToken);
+  const [phoneNumberId, setPhoneNumberId] = useState(whatsappCloud.phoneNumberId);
+  const [templateName, setTemplateName] = useState(whatsappCloud.templateName);
+  const [savedConfig, setSavedConfig] = useState(false);
 
   function choose(method: NotificationMethod) {
     if (!contact) {
@@ -24,10 +33,19 @@ export default function NotificationMethodScreen() {
     });
   }
 
+  function saveCloudConfig() {
+    updateWhatsAppCloud({
+      accessToken,
+      phoneNumberId,
+      templateName,
+    });
+    setSavedConfig(true);
+  }
+
   return (
     <Screen>
       <AppText variant="caption" style={styles.lead}>
-        O alerta e a mensagem de teste usam este método para avisar o contato salvo.
+        O alerta sai sozinho pela API do WhatsApp. O app não abre o WhatsApp nem pede confirmação.
       </AppText>
 
       <Card>
@@ -44,7 +62,51 @@ export default function NotificationMethodScreen() {
             onPress={() => choose('sms')}
           />
         </View>
-        <AppText variant="caption">E-mail será adicionado em uma versão futura.</AppText>
+        <AppText variant="caption">O SMS automático ainda não está disponível.</AppText>
+      </Card>
+
+      <Card style={styles.block}>
+        <AppText variant="label">API DO WHATSAPP</AppText>
+        <FormField
+          label="Token de acesso"
+          value={accessToken}
+          onChangeText={(value) => {
+            setAccessToken(value);
+            setSavedConfig(false);
+          }}
+          placeholder="Token da API"
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <FormField
+          label="ID do número"
+          value={phoneNumberId}
+          onChangeText={(value) => {
+            setPhoneNumberId(value);
+            setSavedConfig(false);
+          }}
+          placeholder="Phone number ID"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <FormField
+          label="Modelo (opcional)"
+          value={templateName}
+          onChangeText={(value) => {
+            setTemplateName(value);
+            setSavedConfig(false);
+          }}
+          placeholder="Nome do template aprovado"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        {savedConfig ? (
+          <AppText variant="caption" color={palette.leaf}>
+            Credenciais salvas nesta sessão.
+          </AppText>
+        ) : null}
+        <AppButton label="Salvar API" onPress={saveCloudConfig} />
       </Card>
     </Screen>
   );
@@ -57,5 +119,9 @@ const styles = StyleSheet.create({
   methods: {
     gap: 10,
     marginVertical: 12,
+  },
+  block: {
+    marginTop: 16,
+    gap: 12,
   },
 });
