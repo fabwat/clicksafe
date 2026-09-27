@@ -115,6 +115,12 @@ export interface WhatsAppCloudConfig {
   templateName: string;
 }
 
+export interface SmsGatewayConfig {
+  accountSid: string;
+  authToken: string;
+  fromNumber: string;
+}
+
 export interface TestMessageResult {
   sent: boolean;
   method: NotificationMethod;

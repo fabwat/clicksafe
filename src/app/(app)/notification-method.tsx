@@ -14,11 +14,17 @@ export default function NotificationMethodScreen() {
   const contact = useAppStore((state) => state.contacts[0] ?? null);
   const upsertPrimaryContact = useAppStore((state) => state.upsertPrimaryContact);
   const whatsappCloud = useAppStore((state) => state.whatsappCloud);
+  const smsGateway = useAppStore((state) => state.smsGateway);
   const updateWhatsAppCloud = useAppStore((state) => state.updateWhatsAppCloud);
+  const updateSmsGateway = useAppStore((state) => state.updateSmsGateway);
   const [accessToken, setAccessToken] = useState(whatsappCloud.accessToken);
   const [phoneNumberId, setPhoneNumberId] = useState(whatsappCloud.phoneNumberId);
   const [templateName, setTemplateName] = useState(whatsappCloud.templateName);
+  const [accountSid, setAccountSid] = useState(smsGateway.accountSid);
+  const [smsToken, setSmsToken] = useState(smsGateway.authToken);
+  const [fromNumber, setFromNumber] = useState(smsGateway.fromNumber);
   const [savedConfig, setSavedConfig] = useState(false);
+  const [savedSms, setSavedSms] = useState(false);
 
   function choose(method: NotificationMethod) {
     if (!contact) {
@@ -42,10 +48,19 @@ export default function NotificationMethodScreen() {
     setSavedConfig(true);
   }
 
+  function saveSmsConfig() {
+    updateSmsGateway({
+      accountSid,
+      authToken: smsToken,
+      fromNumber,
+    });
+    setSavedSms(true);
+  }
+
   return (
     <Screen>
       <AppText variant="caption" style={styles.lead}>
-        O alerta sai sozinho pela API do WhatsApp. O app não abre o WhatsApp nem pede confirmação.
+        O alerta sai sozinho pelo método escolhido. O app não abre outro aplicativo nem pede confirmação.
       </AppText>
 
       <Card>
@@ -62,7 +77,6 @@ export default function NotificationMethodScreen() {
             onPress={() => choose('sms')}
           />
         </View>
-        <AppText variant="caption">O SMS automático ainda não está disponível.</AppText>
       </Card>
 
       <Card style={styles.block}>
@@ -107,6 +121,49 @@ export default function NotificationMethodScreen() {
           </AppText>
         ) : null}
         <AppButton label="Salvar API" onPress={saveCloudConfig} />
+      </Card>
+
+      <Card style={styles.block}>
+        <AppText variant="label">SMS AUTOMÁTICO</AppText>
+        <FormField
+          label="Conta Twilio"
+          value={accountSid}
+          onChangeText={(value) => {
+            setAccountSid(value);
+            setSavedSms(false);
+          }}
+          placeholder="Account SID"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <FormField
+          label="Token Twilio"
+          value={smsToken}
+          onChangeText={(value) => {
+            setSmsToken(value);
+            setSavedSms(false);
+          }}
+          placeholder="Auth token"
+          secureTextEntry
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <FormField
+          label="Número de origem"
+          value={fromNumber}
+          onChangeText={(value) => {
+            setFromNumber(value);
+            setSavedSms(false);
+          }}
+          placeholder="+5511999999999"
+          keyboardType="phone-pad"
+        />
+        {savedSms ? (
+          <AppText variant="caption" color={palette.leaf}>
+            Credenciais de SMS salvas nesta sessão.
+          </AppText>
+        ) : null}
+        <AppButton label="Salvar SMS" onPress={saveSmsConfig} />
       </Card>
     </Screen>
   );

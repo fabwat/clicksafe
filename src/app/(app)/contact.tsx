@@ -60,7 +60,8 @@ export default function ContactScreen() {
 
     try {
       const result = await deliverToSavedContact('test');
-      const message = `Mensagem enviada para ${result.contactName} no WhatsApp, sem abrir o aplicativo.`;
+      const channel = result.method === 'whatsapp' ? 'WhatsApp' : 'SMS';
+      const message = `Mensagem enviada para ${result.contactName} por ${channel}, sem abrir outro aplicativo.`;
       setError(null);
       setNotice(message);
       Alert.alert('Mensagem de teste', `${message}\n\n${result.preview}`);
